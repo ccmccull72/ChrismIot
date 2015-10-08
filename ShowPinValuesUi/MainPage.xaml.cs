@@ -51,48 +51,49 @@ namespace ShowPinValuesUi
             };
 
             ShowPinValues();
+            Pi2Gpio.SetupGpioListeners(valueChanged);
         }
 
         public void ShowPinValues()
         {
-            Task.Factory.StartNew(() =>
-            {
-                while (true)
-                {
-                    var pinValues = Pi2Gpio.GetPinValues();
-                    UpdatePinValues(pinValues);
-                    Task.Delay(500);
-                }
-            });
+            var pinValues = Pi2Gpio.GetPinValues();
+            UpdatePinValues(pinValues);
+            Task.Delay(500);
         }
 
-        public void UpdatePinValues(Dictionary<string, GpioPinValue> pinValues)
+        public void UpdatePinValues(Dictionary<string, string> pinValues)
+        {
+            foreach (var key in uiGpioMap.Keys)
+            {
+                uiGpioMap[key].Text = pinValues[key].ToString();
+                if (pinValues[key].ToString().ToLower() == "low")
+                {
+                    uiGpioMap[key].Foreground = new SolidColorBrush(Colors.Red);
+                }
+                else
+                {
+                    uiGpioMap[key].Foreground = new SolidColorBrush(Colors.Green);
+                }
+            }
+        }
+
+
+        private void valueChanged(GpioPin sender, GpioPinValueChangedEventArgs args)
         {
             var t = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.High, () =>
             {
-                foreach (var key in uiGpioMap.Keys)
+                if (sender.Read().ToString().ToLower() == "low")
                 {
-                    uiGpioMap[key].Text = pinValues[key].ToString();
-                    if (pinValues[key].ToString().ToLower() == "low")
-                    {
-                        uiGpioMap[key].Foreground = new SolidColorBrush(Colors.Red);
-                    }
-                    else
-                    {
-                        uiGpioMap[key].Foreground = new SolidColorBrush(Colors.Green);
-                    }
+                    uiGpioMap["GPIO_" + sender.PinNumber].Foreground = new SolidColorBrush(Colors.Red);
                 }
+                else
+                {
+                    uiGpioMap["GPIO_" + sender.PinNumber].Foreground = new SolidColorBrush(Colors.Green);
+                }
+
+                uiGpioMap["GPIO_" + sender.PinNumber].Text = sender.Read().ToString();
+
             });
-        }
-
-        private void textBlock_Copy_SelectionChanged(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void gpio27TextBlock_Copy2_SelectionChanged(object sender, RoutedEventArgs e)
-        {
-
         }
     }
 }
